@@ -13,6 +13,9 @@
     },
     "android": {
       "package": "com.findfit.app"
-    }
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
 }
