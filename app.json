@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "FindFit",
+    "slug": "findfit-app",
+    "scheme": "findfit",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#E8EEFF"
+    },
+    "android": {
+      "package": "com.findfit.app"
+    }
+  }
+}
