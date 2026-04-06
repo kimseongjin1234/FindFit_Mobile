@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { AppShell, StepBadge } from '../components/AppShell';
 import { ANALYSIS_LINES, COLORS } from './lib';
@@ -33,7 +33,10 @@ export default function AnalyzingScreen() {
     }
   }, [progress, fingerCm, bulk, photoUri]);
 
-  const active = useMemo(() => Math.min(ANALYSIS_LINES.length - 1, Math.floor(progress / 22)), [progress]);
+  const active = useMemo(
+    () => Math.min(ANALYSIS_LINES.length - 1, Math.floor(progress / 22)),
+    [progress]
+  );
 
   return (
     <AppShell
@@ -44,21 +47,34 @@ export default function AnalyzingScreen() {
 
       <View style={styles.viewer}>
         <View style={styles.bodyWrap}>
-          <View style={styles.head} />
-          <View style={styles.torso} />
-          <View style={[styles.arm, { left: 88, transform: [{ rotate: '16deg' }] }]} />
-          <View style={[styles.arm, { right: 88, transform: [{ rotate: '-16deg' }] }]} />
-          <View style={[styles.leg, { left: 114 }]} />
-          <View style={[styles.leg, { right: 114 }]} />
-          {POINTS.map((style, idx) => <View key={idx} style={[styles.point, style]} />)}
-          {LINES.map((style, idx) => <View key={idx} style={[styles.line, style]} />)}
-          <View style={[styles.scanBar, { top: `${Math.max(6, progress * 0.8)}%` }]} />
+          <Image
+            source={require('../assets/body_guide.png')}
+            style={styles.bodyGuideImage}
+            resizeMode="contain"
+          />
+
+          {POINTS.map((style, idx) => (
+            <View key={idx} style={[styles.point, style]} />
+          ))}
+
+          {LINES.map((style, idx) => (
+            <View key={idx} style={[styles.line, style]} />
+          ))}
+
+          <View style={[styles.scanBar, { top: `${Math.max(8, progress * 0.74)}%` }]} />
         </View>
       </View>
 
       <View style={styles.progressBox}>
-        <View style={styles.progressHeader}><Text style={styles.progressLabel}>분석 진행률</Text><Text style={styles.progressValue}>{progress}%</Text></View>
-        <View style={styles.track}><View style={[styles.fill, { width: `${progress}%` }]} /></View>
+        <View style={styles.progressHeader}>
+          <Text style={styles.progressLabel}>분석 진행률</Text>
+          <Text style={styles.progressValue}>{progress}%</Text>
+        </View>
+
+        <View style={styles.track}>
+          <View style={[styles.fill, { width: `${progress}%` }]} />
+        </View>
+
         <Text style={styles.progressCaption}>현재 착장 부피감: {bulk}</Text>
       </View>
 
@@ -66,6 +82,7 @@ export default function AnalyzingScreen() {
         {ANALYSIS_LINES.map((line, idx) => {
           const done = idx < active;
           const current = idx === active;
+
           return (
             <View key={line} style={styles.lineRow}>
               <View style={[styles.dot, done && styles.dotDone, current && styles.dotCurrent]} />
@@ -75,7 +92,12 @@ export default function AnalyzingScreen() {
         })}
       </View>
 
-      <Pressable style={styles.skipButton} onPress={() => router.replace({ pathname: '/result', params: { fingerCm, bulk, photoUri } })}>
+      <Pressable
+        style={styles.skipButton}
+        onPress={() =>
+          router.replace({ pathname: '/result', params: { fingerCm, bulk, photoUri } })
+        }
+      >
         <Text style={styles.skipText}>바로 결과 보기</Text>
       </Pressable>
     </AppShell>
@@ -83,43 +105,153 @@ export default function AnalyzingScreen() {
 }
 
 const POINTS = [
-  { top: 36, left: 146 }, { top: 92, left: 146 }, { top: 126, left: 96 }, { top: 126, left: 196 },
-  { top: 178, left: 146 }, { top: 236, left: 146 }, { top: 262, left: 116 }, { top: 262, left: 176 },
-  { top: 360, left: 116 }, { top: 360, left: 176 }
+  { top: 34, left: 144 },  // 머리
+  { top: 94, left: 144 },  // 목/상체
+  { top: 126, left: 95 },  // 왼어깨
+  { top: 126, left: 194 }, // 오른어깨
+  { top: 185, left: 144 }, // 가슴/상체 중심
+  { top: 246, left: 144 }, // 허리
+  { top: 278, left: 112 }, // 왼엉덩이
+  { top: 278, left: 176 }, // 오른엉덩이
+  { top: 360, left: 112 }, // 왼무릎
+  { top: 360, left: 176 }, // 오른무릎
+  { top: 444, left: 108 }, // 왼발
+  { top: 444, left: 180 }, // 오른발
 ];
+
 const LINES = [
-  { top: 48, left: 151, width: 2, height: 54 },
-  { top: 128, left: 110, width: 84, height: 2 },
-  { top: 102, left: 151, width: 2, height: 140 },
-  { top: 264, left: 124, width: 50, height: 2 },
-  { top: 264, left: 124, width: 2, height: 98 },
-  { top: 264, left: 174, width: 2, height: 98 }
+  { top: 48, left: 149, width: 2, height: 52 },
+  { top: 128, left: 108, width: 78, height: 2 },
+  { top: 102, left: 149, width: 2, height: 146 },
+  { top: 278, left: 118, width: 52, height: 2 },
+  { top: 278, left: 118, width: 2, height: 84 },
+  { top: 278, left: 170, width: 2, height: 84 },
+  { top: 444, left: 116, width: 58, height: 2 },
 ];
 
 const styles = StyleSheet.create({
-  viewer: { height: 320, borderRadius: 24, backgroundColor: '#F8FAFF', borderWidth: 1, borderColor: COLORS.line, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  bodyWrap: { width: 300, height: 470, position: 'relative' },
-  head: { position: 'absolute', top: 14, left: 124, width: 46, height: 46, borderRadius: 23, backgroundColor: '#BCCBEF' },
-  torso: { position: 'absolute', top: 68, left: 118, width: 58, height: 124, borderRadius: 26, backgroundColor: '#D2DCF5' },
-  arm: { position: 'absolute', top: 112, width: 18, height: 110, borderRadius: 12, backgroundColor: '#D2DCF5' },
-  leg: { position: 'absolute', top: 198, width: 22, height: 190, borderRadius: 14, backgroundColor: '#C8D4F2' },
-  point: { position: 'absolute', width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.mint, borderWidth: 2, borderColor: 'white' },
-  line: { position: 'absolute', backgroundColor: 'rgba(59,100,230,0.45)', borderRadius: 999 },
-  scanBar: { position: 'absolute', left: 18, right: 18, height: 3, backgroundColor: COLORS.primary },
-  progressBox: { marginTop: 16, borderRadius: 18, backgroundColor: COLORS.soft, borderWidth: 1, borderColor: COLORS.line, padding: 14 },
-  progressHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  progressLabel: { color: COLORS.text, fontWeight: '800' },
-  progressValue: { color: COLORS.primary, fontWeight: '900' },
-  track: { height: 10, borderRadius: 999, backgroundColor: '#DCE4FA', overflow: 'hidden' },
-  fill: { height: '100%', borderRadius: 999, backgroundColor: COLORS.primary },
-  progressCaption: { marginTop: 8, color: COLORS.subtext, fontWeight: '700' },
-  lineList: { marginTop: 16 },
-  lineRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
-  dot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#CBD5F3', marginRight: 10 },
-  dotDone: { backgroundColor: COLORS.success },
-  dotCurrent: { width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.primary },
-  lineText: { color: COLORS.subtext, fontWeight: '700' },
-  lineTextCurrent: { color: COLORS.text },
-  skipButton: { marginTop: 'auto', height: 52, borderRadius: 16, borderWidth: 1, borderColor: COLORS.line, alignItems: 'center', justifyContent: 'center' },
-  skipText: { color: COLORS.text, fontWeight: '800' }
+  viewer: {
+    height: 360,
+    borderRadius: 24,
+    backgroundColor: '#F8FAFF',
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  bodyWrap: {
+    width: 300,
+    height: 500,
+    position: 'relative',
+    alignItems: 'center',
+  },
+  bodyGuideImage: {
+    width: 240,
+    height: 470,
+    marginTop: 8,
+  },
+  point: {
+    position: 'absolute',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.mint,
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  line: {
+    position: 'absolute',
+    backgroundColor: 'rgba(59,100,230,0.45)',
+    borderRadius: 999,
+  },
+  scanBar: {
+    position: 'absolute',
+    left: 26,
+    right: 26,
+    height: 3,
+    backgroundColor: COLORS.primary,
+    borderRadius: 999,
+  },
+  progressBox: {
+    marginTop: 16,
+    borderRadius: 18,
+    backgroundColor: COLORS.soft,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    padding: 14,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  progressLabel: {
+    color: COLORS.text,
+    fontWeight: '800',
+  },
+  progressValue: {
+    color: COLORS.primary,
+    fontWeight: '900',
+  },
+  track: {
+    height: 10,
+    borderRadius: 999,
+    backgroundColor: '#DCE4FA',
+    overflow: 'hidden',
+  },
+  fill: {
+    height: '100%',
+    borderRadius: 999,
+    backgroundColor: COLORS.primary,
+  },
+  progressCaption: {
+    marginTop: 8,
+    color: COLORS.subtext,
+    fontWeight: '700',
+  },
+  lineList: {
+    marginTop: 16,
+  },
+  lineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#CBD5F3',
+    marginRight: 10,
+  },
+  dotDone: {
+    backgroundColor: COLORS.success,
+  },
+  dotCurrent: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: COLORS.primary,
+  },
+  lineText: {
+    color: COLORS.subtext,
+    fontWeight: '700',
+  },
+  lineTextCurrent: {
+    color: COLORS.text,
+  },
+  skipButton: {
+    marginTop: 'auto',
+    height: 52,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skipText: {
+    color: COLORS.text,
+    fontWeight: '800',
+  },
 });

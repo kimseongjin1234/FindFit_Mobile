@@ -1,127 +1,60 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { PixelRatio } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const COLORS = {
-  bg: '#EEF3FF',
-  card: '#FFFFFF',
-  primary: '#3B64E6',
-  primarySoft: '#E5ECFF',
-  mint: '#67C9AF',
-  text: '#1F2D59',
-  subtext: '#6B779B',
-  line: '#DFE6FA',
-  success: '#2FA27D',
-  danger: '#D55B5B',
-  dark: '#102048',
-  soft: '#F7F9FF',
+  primary: '#4667E8',
+  primarySoft: '#E8EEFF',
+  mint: '#69CDB7',
+  soft: '#F7FAFF',
+  line: '#D9E2F2',
+  text: '#1D2B64',
+  subtext: '#6E7A9A',
+  success: '#59C59A',
+  danger: '#E85C5C',
 };
 
 export const FIT_OPTIONS = ['슬림핏', '정핏', '세미오버'];
-export const BULK_OPTIONS = ['타이트', '보통', '볼륨감'];
-
-const AUTH_KEY = 'findfit_user_v1';
-const RECORDS_KEY = 'findfit_measurements_v1';
-
-function seedFromString(input) {
-  return Array.from(input || 'demo').reduce((sum, ch) => sum + ch.charCodeAt(0), 0) % 31;
-}
-
-export function getPixelsPerCm() {
-  const scale = PixelRatio.get();
-  const densityDpi = 160 * scale;
-  return densityDpi / 2.54;
-}
-
-export function getDpPerCm() {
-  return getPixelsPerCm() / PixelRatio.get();
-}
-
-export function formatCalibrationLabel() {
-  const densityDpi = Math.round(160 * PixelRatio.get());
-  return `화면 밀도 ${densityDpi}dpi 기준`;
-}
-
-export function getApiBase() {
-  const extra = Constants.expoConfig?.extra || Constants.manifest2?.extra || {};
-  return (
-    process.env.EXPO_PUBLIC_API_BASE_URL ||
-    extra.apiBaseUrl ||
-    'https://body-measure-rcky.onrender.com'
-  ).replace(/\/$/, '');
-}
-
-export function buildMetrics(fingerCm, fit, bulk, photoUri) {
-  const finger = Math.min(Math.max(Number(fingerCm) || 7.0, 5.0), 9.5);
-  const seed = seedFromString(photoUri);
-  const fitAdjust = fit === '슬림핏' ? -1.2 : fit === '세미오버' ? 1.8 : 0;
-  const bulkAdjust = bulk === '타이트' ? -0.8 : bulk === '볼륨감' ? 1.5 : 0;
-
-  const shoulder = +(finger * 6.3 + seed * 0.05 + bulkAdjust * 0.4).toFixed(1);
-  const chest = +(finger * 13.2 + 3 + fitAdjust + bulkAdjust + seed * 0.16).toFixed(1);
-  const waist = +(finger * 11.3 + 1 + fitAdjust * 0.6 + bulkAdjust * 0.9 + seed * 0.13).toFixed(1);
-  const hip = +(waist + 8.1 + bulkAdjust * 0.6 + seed * 0.1).toFixed(1);
-  const sleeve = +(finger * 8.1 + 3.1 + seed * 0.07).toFixed(1);
-  const inseam = +(finger * 9.9 + 2 + seed * 0.16).toFixed(1);
-  const rise = +(finger * 3.5 + 1.2 + seed * 0.05).toFixed(1);
-  const head = +(finger * 7.6 + 0.8 + seed * 0.04).toFixed(1);
-  const knee = +(finger * 4.1 + 0.5 + seed * 0.03).toFixed(1);
-  const leg = +(inseam + rise + 6.5).toFixed(1);
-  const foot = +(finger * 3.6 + 0.8 + seed * 0.02).toFixed(1);
-  const height = Math.round(finger * 22.6 + seed * 0.8 + 7);
-  const confidence = Math.min(98, 90 + (seed % 8));
-  const top = chest >= 106 ? 'XL' : chest >= 98 ? 'L' : chest >= 91 ? 'M' : 'S';
-  const bottom = waist >= 92 ? '34' : waist >= 87 ? '32' : waist >= 82 ? '31' : '29';
-  const match = Math.min(98, 90 + (seed % 6) + (fit === '정핏' ? 1 : 0));
-
-  return { shoulder, chest, waist, hip, sleeve, inseam, rise, head, knee, leg, foot, height, confidence, top, bottom, match };
-}
+export const BULK_OPTIONS = ['타이트', '보통', '루즈'];
 
 export const ANALYSIS_LINES = [
-  '인체 윤곽선 분리',
-  '관절 포인트 후보 탐색',
-  '검지 기준 길이 보정',
-  '부위별 치수 환산',
-  '의류 DB 매칭 점수 계산',
+  '전신 윤곽을 정렬하는 중',
+  '관절 포인트를 인식하는 중',
+  '검지 실측 기준으로 비율을 환산하는 중',
+  '상의/하의 치수를 추정하는 중',
+  '추천 의류 DB와 비교하는 중',
 ];
 
-export function buildProducts(metrics, fit, bulk) {
-  const fitText = fit === '슬림핏' ? '슬림' : fit === '세미오버' ? '세미오버' : '정핏';
-  const bulkText = bulk === '타이트' ? '가벼운 원단' : bulk === '볼륨감' ? '도톰한 실루엣' : '기본 두께';
-  return [
-    {
-      id: 'top1', mall: 'StyleHub', name: '에센셜 옥스포드 셔츠', category: '상의', size: metrics.top,
-      score: metrics.match, price: '39,900원', color: '스카이블루', fit: fitText, bulk: bulkText,
-    },
-    {
-      id: 'outer1', mall: 'Mono Select', name: '라이트 블루종 재킷', category: '아우터', size: metrics.top,
-      score: Math.max(85, metrics.match - 4), price: '79,000원', color: '카키', fit: bulk === '볼륨감' ? '세미오버' : '정핏', bulk: '구조감 있음',
-    },
-    {
-      id: 'bottom1', mall: 'Daily Pants', name: '테이퍼드 데님 팬츠', category: '하의', size: metrics.bottom,
-      score: Math.max(84, metrics.match - 2), price: '54,000원', color: '미디엄블루', fit: fit === '슬림핏' ? '슬림 테이퍼드' : '레귤러', bulk: '사계절 원단',
-    },
-  ];
-}
+const STORAGE_KEYS = {
+  user: '@findfit_user',
+  records: '@findfit_records',
+};
 
-export function buildAnalysisMap(metrics) {
-  return {
-    head: { label: `머리 ${metrics.head}cm`, points: [{ top: '12%', left: '50%' }], line: { top: '12%', left: '50%', width: 3, height: '8%' }, pill: { top: '7%', right: '5%' } },
-    shoulder: { label: `어깨 ${metrics.shoulder}cm`, points: [{ top: '22%', left: '33%' }, { top: '22%', left: '67%' }], line: { top: '22%', left: '33%', width: '34%', height: 3 }, pill: { top: '24%', left: '4%' } },
-    sleeve: { label: `소매 ${metrics.sleeve}cm`, points: [{ top: '24%', left: '67%' }, { top: '49%', left: '78%' }], line: { top: '35.5%', left: '72%', width: 3, height: '15%', transform: [{ rotate: '-22deg' }] }, pill: { top: '30%', right: '3%' } },
-    chest: { label: `가슴 ${metrics.chest}cm`, points: [{ top: '38%', left: '36%' }, { top: '38%', left: '64%' }], line: { top: '38%', left: '36%', width: '28%', height: 3 }, pill: { top: '40%', right: '4%' } },
-    waist: { label: `허리 ${metrics.waist}cm`, points: [{ top: '55%', left: '39%' }, { top: '55%', left: '61%' }], line: { top: '55%', left: '39%', width: '22%', height: 3 }, pill: { top: '57%', left: '6%' } },
-    hip: { label: `엉덩이 ${metrics.hip}cm`, points: [{ top: '62%', left: '37%' }, { top: '62%', left: '63%' }], line: { top: '62%', left: '37%', width: '26%', height: 3 }, pill: { top: '64%', right: '4%' } },
-    knee: { label: `무릎 ${metrics.knee}cm`, points: [{ top: '77%', left: '42%' }, { top: '77%', left: '58%' }], line: { top: '77%', left: '42%', width: '16%', height: 3 }, pill: { top: '74%', left: '6%' } },
-    leg: { label: `다리 ${metrics.leg}cm`, points: [{ top: '62%', left: '46%' }, { top: '89%', left: '46%' }], line: { top: '62%', left: '46%', width: 3, height: '27%' }, pill: { bottom: '10%', left: '7%' } },
-    foot: { label: `발 ${metrics.foot}cm`, points: [{ top: '93%', left: '42%' }, { top: '93%', left: '58%' }], line: { top: '93%', left: '42%', width: '16%', height: 3 }, pill: { bottom: '4%', right: '4%' } },
-    inseam: { label: `인심 ${metrics.inseam}cm`, points: [{ top: '61%', left: '50%' }, { top: '89%', left: '50%' }], line: { top: '61%', left: '50%', width: 3, height: '28%' }, pill: { bottom: '13%', right: '4%' } },
-  };
+const DEFAULT_API_BASE = 'https://body-measure-rcky.onrender.com';
+
+export const API_BASE =
+  process.env.EXPO_PUBLIC_API_BASE_URL ||
+  Constants.expoConfig?.extra?.apiBaseUrl ||
+  DEFAULT_API_BASE;
+
+export function getPixelsPerCm() {
+  const dpi = PixelRatio.get() * 160;
+  return dpi / 2.54;
+}
+export function getDpPerCm() {
+  return getPixelsPerCm();
+}
+export function getTodayLabel() {
+  return new Date().toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
 }
 
 export async function getSavedUser() {
   try {
-    const raw = await AsyncStorage.getItem(AUTH_KEY);
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.user);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -129,60 +62,163 @@ export async function getSavedUser() {
 }
 
 export async function saveUser(user) {
-  await AsyncStorage.setItem(AUTH_KEY, JSON.stringify(user));
-  return user;
+  await AsyncStorage.setItem(STORAGE_KEYS.user, JSON.stringify(user));
 }
 
-export async function clearUser() {
-  await AsyncStorage.removeItem(AUTH_KEY);
-}
-
-export async function loginProfile({ name, email, password }) {
-  const trimmedEmail = email.trim().toLowerCase();
-  const user = {
-    id: trimmedEmail || `guest-${Date.now()}`,
-    name: name?.trim() || trimmedEmail.split('@')[0] || 'FindFit 사용자',
-    email: trimmedEmail || 'guest@findfit.app',
-    passwordHint: password ? `${password.length}자 입력됨` : '간편 로그인',
-    joinedAt: new Date().toISOString(),
-  };
-  return saveUser(user);
+export async function clearSavedUser() {
+  await AsyncStorage.removeItem(STORAGE_KEYS.user);
 }
 
 export async function getSavedMeasurements() {
   try {
-    const raw = await AsyncStorage.getItem(RECORDS_KEY);
-    const rows = raw ? JSON.parse(raw) : [];
-    return Array.isArray(rows) ? rows : [];
+    const raw = await AsyncStorage.getItem(STORAGE_KEYS.records);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
 export async function saveMeasurementRecord(record) {
-  const current = await getSavedMeasurements();
-  const next = [{ id: `${Date.now()}`, createdAt: new Date().toISOString(), ...record }, ...current];
-  await AsyncStorage.setItem(RECORDS_KEY, JSON.stringify(next));
-  return next[0];
-}
-
-export async function removeMeasurementRecord(id) {
-  const current = await getSavedMeasurements();
-  const next = current.filter((item) => item.id !== id);
-  await AsyncStorage.setItem(RECORDS_KEY, JSON.stringify(next));
+  const prev = await getSavedMeasurements();
+  const next = [
+    {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+      createdAt: new Date().toISOString(),
+      ...record,
+    },
+    ...prev,
+  ];
+  await AsyncStorage.setItem(STORAGE_KEYS.records, JSON.stringify(next));
   return next;
 }
 
-export function buildHistorySeries(records, key) {
-  return records
+export async function removeMeasurementRecord(id) {
+  const prev = await getSavedMeasurements();
+  const next = prev.filter((item) => item.id !== id);
+  await AsyncStorage.setItem(STORAGE_KEYS.records, JSON.stringify(next));
+  return next;
+}
+
+function clamp(num, min, max) {
+  return Math.min(max, Math.max(min, num));
+}
+
+function round1(v) {
+  return Math.round(v * 10) / 10;
+}
+
+function getBulkOffset(bulk) {
+  if (bulk === '타이트') return -1.2;
+  if (bulk === '루즈') return 1.8;
+  return 0;
+}
+
+export function buildMeasurements(fingerCm = 7.1, bulk = '보통') {
+  const finger = Number(fingerCm) || 7.1;
+  const bulkOffset = getBulkOffset(bulk);
+
+  const height = round1(clamp(finger * 24.6 + bulkOffset * 1.4, 155, 191));
+  const shoulder = round1(clamp(finger * 6.4 + bulkOffset * 0.4, 39, 52));
+  const chest = round1(clamp(finger * 13.9 + bulkOffset * 1.1, 82, 120));
+  const waist = round1(clamp(finger * 11.7 + bulkOffset * 1.0, 68, 108));
+  const hip = round1(clamp(finger * 13.2 + bulkOffset * 1.1, 84, 122));
+  const sleeve = round1(clamp(finger * 8.4 + bulkOffset * 0.2, 52, 68));
+  const knee = round1(clamp(finger * 5.2 + bulkOffset * 0.2, 31, 47));
+  const leg = round1(clamp(finger * 15.9 + bulkOffset * 0.6, 92, 122));
+  const foot = round1(clamp(finger * 3.7 + bulkOffset * 0.1, 22, 31));
+  const head = round1(clamp(finger * 7.8 + bulkOffset * 0.2, 52, 63));
+
+  const top =
+    chest < 92 ? 'S' : chest < 100 ? 'M' : chest < 108 ? 'L' : chest < 116 ? 'XL' : '2XL';
+
+  const bottom =
+    waist < 76 ? '28' : waist < 82 ? '30' : waist < 88 ? '32' : waist < 94 ? '34' : '36';
+
+  return [
+    { key: 'height', label: '키', value: height, display: `${height}cm` },
+    { key: 'shoulder', label: '어깨', value: shoulder, display: `${shoulder}cm` },
+    { key: 'chest', label: '가슴', value: chest, display: `${chest}cm` },
+    { key: 'waist', label: '허리', value: waist, display: `${waist}cm` },
+    { key: 'hip', label: '엉덩이둘레', value: hip, display: `${hip}cm` },
+    { key: 'sleeve', label: '소매', value: sleeve, display: `${sleeve}cm` },
+    { key: 'knee', label: '무릎', value: knee, display: `${knee}cm` },
+    { key: 'leg', label: '다리', value: leg, display: `${leg}cm` },
+    { key: 'foot', label: '발', value: `${foot}cm`, display: `${foot}cm` },
+    { key: 'head', label: '머리', value: head, display: `${head}cm` },
+    { key: 'top', label: '상의', value: top, display: top },
+    { key: 'bottom', label: '하의', value: bottom, display: bottom },
+  ];
+}
+
+export function buildRecommendations({ fit = '정핏', bulk = '보통', measurements = [] }) {
+  const chest = Number(measurements.find((m) => m.key === 'chest')?.value || 98);
+  const waist = Number(measurements.find((m) => m.key === 'waist')?.value || 82);
+
+  const topSize =
+    fit === '슬림핏'
+      ? chest < 94 ? 'S' : chest < 102 ? 'M' : chest < 110 ? 'L' : 'XL'
+      : fit === '세미오버'
+      ? chest < 90 ? 'M' : chest < 100 ? 'L' : chest < 110 ? 'XL' : '2XL'
+      : chest < 92 ? 'S' : chest < 100 ? 'M' : chest < 108 ? 'L' : 'XL';
+
+  const bottomSize =
+    waist < 76 ? '28' : waist < 82 ? '30' : waist < 88 ? '32' : waist < 94 ? '34' : '36';
+
+  return [
+    {
+      id: 'rec_1',
+      brand: 'StyleHub',
+      name: '에센셜 옥스포드 셔츠',
+      size: topSize,
+      reason: `${fit} 기준으로 가슴둘레와 어깨 추정치에 가장 무난하게 맞는 상의입니다.`,
+    },
+    {
+      id: 'rec_2',
+      brand: 'Mono Select',
+      name: '라이트 블루종 재킷',
+      size: fit === '세미오버' ? topSize === 'S' ? 'M' : topSize : topSize,
+      reason: `${bulk} 착장 상태를 감안했을 때 겉옷 레이어링에 적합한 추천입니다.`,
+    },
+    {
+      id: 'rec_3',
+      brand: 'Daily Pants',
+      name: '테이퍼드 데님 팬츠',
+      size: bottomSize,
+      reason: `허리 추정치와 하의 기준 사이즈를 반영한 추천입니다.`,
+    },
+  ];
+}
+
+export function buildHistorySeries(records = [], metricKey = 'height') {
+  return [...records]
     .slice()
     .reverse()
-    .map((item, index) => ({
-      id: item.id,
-      index: index + 1,
-      label: `${index + 1}회`,
-      value: Number(item.metrics?.[key] || 0),
-      createdAt: item.createdAt,
-    }))
-    .filter((item) => Number.isFinite(item.value) && item.value > 0);
+    .map((item) => {
+      let value = null;
+
+      if (Array.isArray(item.measurements)) {
+        const found = item.measurements.find((m) => m.key === metricKey);
+        value = found?.value;
+      }
+
+      if (
+        value == null &&
+        item.metrics &&
+        Object.prototype.hasOwnProperty.call(item.metrics, metricKey)
+      ) {
+        value = item.metrics[metricKey];
+      }
+
+      value = Number(value);
+
+      if (Number.isNaN(value)) return null;
+
+      return {
+        id: item.id,
+        value,
+        createdAt: item.createdAt,
+      };
+    })
+    .filter(Boolean);
 }
